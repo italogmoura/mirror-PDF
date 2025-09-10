@@ -52,3 +52,34 @@ coverage/
 
 # nyc test coverage
 .nyc_output
+
+# Sensitive data
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+credentials/
+config/secrets.*
+.secrets
+auth.json
+tokens.json
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup

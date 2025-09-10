@@ -6,7 +6,7 @@ Converte páginas web em PDFs. Executa crawling de links e gera arquivos PDF org
 
 1. **Clone o repositório**
    ```bash
-   git clone <URL_DO_REPOSITORIO> && cd mirror-PDF
+   git clone https://github.com/italogmoura/mirror-PDF && cd mirror-PDF
    ```
 
 2. **Instale o pnpm e dependências**
@@ -20,3 +20,10 @@ Converte páginas web em PDFs. Executa crawling de links e gera arquivos PDF org
    ```
 
 Os PDFs serão salvos no diretório `output/`.
+
+Exemplo de links:
+
+https://python.langchain.com/docs/tutorials/
+
+https://python.langchain.com/docs/how_to/
+
