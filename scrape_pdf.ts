@@ -13,6 +13,7 @@ export interface ICLIArguments {
     withHeader: boolean;
     media: string;
     colorScheme: string;
+    headless: boolean;
 }
 
 (async () => {
@@ -51,6 +52,12 @@ export interface ICLIArguments {
                 alias: 'c',
                 description: "Emulate the given color scheme (if the site supports color schemes)",
                 defaultValue: 'no-preference',
+            },
+            headless: {
+                type: Boolean,
+                alias: 'H',
+                description: "Run browser in non-headless mode (useful for bypassing bot detection)",
+                defaultValue: false,
             }
         });
 
@@ -64,7 +71,17 @@ export interface ICLIArguments {
         chromium.use(stealth());
         
         const browser = await chromium.launch({
-            headless: true
+            headless: !args.headless, // Respect user's headless flag, default is headless=true
+            args: [
+                '--no-first-run',
+                '--no-default-browser-check',
+                '--disable-dev-shm-usage',
+                '--no-sandbox',
+                '--disable-blink-features=AutomationControlled',
+                '--disable-features=VizDisplayCompositor',
+                '--disable-web-security',
+                '--disable-features=site-per-process'
+            ]
         });
 
         try {

@@ -21,9 +21,13 @@ Converte páginas web em PDFs. Executa crawling de links e gera arquivos PDF org
 
 Os PDFs serão salvos no diretório `output/`.
 
-Exemplo de links:
+## Exemplos de links:
 
+# 1
 https://python.langchain.com/docs/tutorials/
 
+# 2
 https://python.langchain.com/docs/how_to/
 
+# 3
+https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering

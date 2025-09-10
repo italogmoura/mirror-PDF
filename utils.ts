@@ -28,25 +28,77 @@ const userAgents = [
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15'
 ];
 
-const visitPage = async (rootUrl: string, browser: Browser, url: string, verbose: boolean, dryRun: boolean, withHeader: boolean, media: string, colorScheme: string) => {
-    // Create new context with random user agent and headers
+const visitPage = async (rootUrl: string, browser: Browser, url: string, verbose: boolean, dryRun: boolean, withHeader: boolean, media: string, colorScheme: string, retryCount: number = 0) => {
+    // Progressive stealth based on retry count
+    const stealthLevel = Math.min(retryCount, 2); // 0=normal, 1=enhanced, 2=maximum
+    
+    // Create new context with progressive stealth measures
     const userAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
-    const context = await browser.newContext({
+    const baseContext = {
         userAgent: userAgent,
+        viewport: { width: 1366 + Math.floor(Math.random() * 200), height: 768 + Math.floor(Math.random() * 200) },
+        locale: 'en-US',
+        timezoneId: 'America/New_York',
         extraHTTPHeaders: {
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
             'Accept-Encoding': 'gzip, deflate, br',
             'Cache-Control': 'no-cache',
             'Sec-Fetch-Dest': 'document',
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'none',
             'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1'
+            'Upgrade-Insecure-Requests': '1',
+            'DNT': '1',
+            'Connection': 'keep-alive'
         }
-    });
+    };
+    
+    // Enhanced stealth for higher retry counts
+    if (stealthLevel >= 1) {
+        Object.assign(baseContext.extraHTTPHeaders, {
+            'X-Forwarded-For': `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+            'X-Real-IP': `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+        });
+    }
+    
+    const context = await browser.newContext(baseContext);
 
     const page = await context.newPage();
+
+    // Additional stealth measures to avoid bot detection
+    await page.addInitScript(() => {
+        // Remove webdriver property
+        delete (navigator as any).webdriver;
+        
+        // Override the plugins property to make it seem normal
+        Object.defineProperty(navigator, 'plugins', {
+            get: () => [1, 2, 3, 4, 5]
+        });
+        
+        // Override the languages property
+        Object.defineProperty(navigator, 'languages', {
+            get: () => ['en-US', 'en', 'es']
+        });
+        
+        // Mock chrome runtime
+        Object.defineProperty(window, 'chrome', {
+            get: () => ({
+                runtime: {},
+                loadTimes: () => ({}),
+                csi: () => ({}),
+                app: {}
+            })
+        });
+        
+        // Override permissions
+        const originalQuery = window.navigator.permissions.query;
+        window.navigator.permissions.query = (parameters: any) => (
+            parameters.name === 'notifications' ?
+            Promise.resolve({ state: Notification.permission } as any) :
+            originalQuery(parameters)
+        );
+    });
 
     // Random delay before navigation
     await page.waitForTimeout(randomDelay(500, 1500));
@@ -67,8 +119,88 @@ const visitPage = async (rootUrl: string, browser: Browser, url: string, verbose
             window.scrollBy(0, Math.random() * 300);
         });
         
-        // Wait a bit more for dynamic content to load
+        // Wait for content to actually load and check for placeholder text
         await page.waitForTimeout(randomDelay(2000, 4000));
+        
+        // Check if we're getting placeholder content or other bot detection indicators
+        const bodyText = await page.textContent('body');
+        const isBotDetected = bodyText && (
+            bodyText.includes('word word word') || 
+            bodyText.includes('Access denied') ||
+            bodyText.includes('Please enable JavaScript') ||
+            bodyText.includes('Checking your browser') ||
+            bodyText.includes('Just a moment') ||
+            bodyText.length < 500 // Suspiciously short content
+        );
+        
+        if (isBotDetected && retryCount < 2) {
+            const attemptNumber = retryCount + 1;
+            console.log(chalk.yellow(`🤖 Bot detection detected for ${url} - Auto-bypass attempt ${attemptNumber}/2...`));
+            
+            // Apply progressive bypass strategies
+            if (retryCount === 0) {
+                // First attempt: Enhanced stealth with human simulation
+                await page.reload({ waitUntil: 'networkidle' });
+                await page.waitForTimeout(randomDelay(3000, 5000));
+                
+                // Simulate human-like interactions
+                await page.mouse.move(200 + Math.random() * 100, 300 + Math.random() * 100);
+                await page.mouse.click(200 + Math.random() * 100, 300 + Math.random() * 100);
+                await page.keyboard.press('Tab');
+                await page.waitForTimeout(randomDelay(1000, 2000));
+                
+                // Natural scrolling pattern
+                await page.evaluate(() => {
+                    const scrollSteps = [100, 200, 150, 0];
+                    scrollSteps.forEach((scroll, i) => {
+                        setTimeout(() => window.scrollTo(0, scroll), i * 500);
+                    });
+                });
+                
+                await page.waitForTimeout(3000);
+            } else {
+                // Second attempt: More aggressive anti-detection
+                await page.waitForTimeout(randomDelay(5000, 8000));
+                
+                // Multiple reload attempts with randomized behavior
+                for (let i = 0; i < 2; i++) {
+                    await page.reload({ waitUntil: 'domcontentloaded' });
+                    await page.waitForTimeout(randomDelay(2000, 4000));
+                    
+                    // Randomized human-like behavior
+                    await page.mouse.move(Math.random() * 800, Math.random() * 600);
+                    await page.evaluate(() => {
+                        // Simulate reading behavior with pauses
+                        const scrollY = Math.random() * 500;
+                        window.scrollBy(0, scrollY);
+                        setTimeout(() => window.scrollBy(0, -scrollY * 0.3), 1500);
+                    });
+                    await page.waitForTimeout(randomDelay(2000, 4000));
+                }
+            }
+            
+            // Check if bypass worked
+            const newBodyText = await page.textContent('body');
+            const stillDetected = newBodyText && (
+                newBodyText.includes('word word word') || 
+                newBodyText.includes('Access denied') ||
+                newBodyText.includes('Please enable JavaScript') ||
+                newBodyText.includes('Checking your browser') ||
+                newBodyText.includes('Just a moment') ||
+                newBodyText.length < 500
+            );
+            
+            if (stillDetected) {
+                console.log(chalk.yellow(`🔄 Auto-bypass ${attemptNumber} failed, trying enhanced stealth...`));
+                await page.close();
+                await context.close();
+                return await visitPage(rootUrl, browser, url, verbose, dryRun, withHeader, media, colorScheme, retryCount + 1);
+            } else {
+                console.log(chalk.green(`✅ Auto-bypass successful for ${url}`));
+            }
+        } else if (isBotDetected && retryCount >= 2) {
+            console.log(chalk.red(`⚠️ Strong bot protection detected for ${url}. Content may be limited.`));
+        }
     } catch (e) {
         console.log(chalk.yellow(`First attempt (domcontentloaded) failed for ${url}, trying fallback...`));
         try {
