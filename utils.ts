@@ -164,7 +164,21 @@ const savePdfFile = async (page: Page, url: string, verbose: boolean, withHeader
 
     const fileName = `${pageTitle}_${safeUrl}.pdf`;
 
-    const pdfPath = `${OUTPUT_DIR}/${fileName}`;
+    // Extract domain from URL and create domain-specific folder
+    const urlObj = new URL(url);
+    const hostnameParts = urlObj.hostname.replace('www.', '').split('.');
+    // Get the main domain name (second-to-last part for most domains)
+    const domain = hostnameParts.length >= 2 ? hostnameParts[hostnameParts.length - 2] : hostnameParts[0];
+    const domainDir = `${OUTPUT_DIR}/${domain}`;
+    
+    // Create domain directory if it doesn't exist
+    try {
+        await fs.stat(domainDir);
+    } catch (err) {
+        await fs.mkdir(domainDir, { recursive: true });
+    }
+
+    const pdfPath = `${domainDir}/${fileName}`;
 
     // https://playwright.dev/docs/api/class-page#page-emulate-media
     await page.emulateMedia({ media: media as Media, colorScheme: colorScheme as ColorScheme });

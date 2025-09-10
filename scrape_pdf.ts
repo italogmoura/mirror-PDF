@@ -105,7 +105,22 @@ export interface ICLIArguments {
                 console.log(chalk.cyan(sortedUrls));
             }
             console.log(chalk.green(`Total URLs: ${urls.length}`));
-            await fs.writeFile(`${OUTPUT_DIR}/___urls.txt`, sortedUrls);
+            
+            // Extract domain from rootUrl and save urls.txt in domain-specific folder
+            const rootUrlObj = new URL(rootUrl);
+            const hostnameParts = rootUrlObj.hostname.replace('www.', '').split('.');
+            // Get the main domain name (second-to-last part for most domains)
+            const rootDomain = hostnameParts.length >= 2 ? hostnameParts[hostnameParts.length - 2] : hostnameParts[0];
+            const domainDir = `${OUTPUT_DIR}/${rootDomain}`;
+            
+            // Create domain directory if it doesn't exist
+            try {
+                await fs.stat(domainDir);
+            } catch (err) {
+                await fs.mkdir(domainDir, { recursive: true });
+            }
+            
+            await fs.writeFile(`${domainDir}/___urls.txt`, sortedUrls);
         } catch (err) {
             console.error(err);
             browser.close();
